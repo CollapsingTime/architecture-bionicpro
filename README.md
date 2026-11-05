@@ -22,3 +22,8 @@ curl -s -o /dev/null -w '%{redirect_url}\n' "http://localhost:8080/realms/report
 # password grant -> 400 unauthorized_client
 curl -s -X POST "http://localhost:8080/realms/reports-realm/protocol/openid-connect/token" -d "grant_type=password&client_id=reports-frontend&username=user1&password=password123"
 ```
+
+---
+
+# Задание 2 задача 1
+C4-диаграмма архитектуры отчетности (ETL Airflow -> витрина в ClickHouse -> API /reports): `Task2/C4_BionicPRO_reports_diagram.drawio`
