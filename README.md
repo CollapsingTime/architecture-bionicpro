@@ -27,3 +27,41 @@ curl -s -X POST "http://localhost:8080/realms/reports-realm/protocol/openid-conn
 
 # Задание 2 задача 1
 C4-диаграмма архитектуры отчетности (ETL Airflow -> витрина в ClickHouse -> API /reports): `Task2/C4_BionicPRO_reports_diagram.drawio`
+
+# Задание 2 задача 2
+
+Airflow-код отчётности в `reports/`
+
+# Запуск проекта
+
+## Первый запуск
+
+1. Стек Keycloak + frontend из корня проекта:
+
+```bash
+docker compose up -d --build
+```
+
+2. Стек отчетности (Airflow + PostgreSQL + ClickHouse):
+
+```bash
+docker compose -f reports/docker-compose.yaml up -d --build
+```
+
+`airflow-init` при первом запуске создает базу Airflow, пользователя `admin` и снимает DAG с паузы
+
+## Доступы
+
+```text
+Frontend:   http://localhost:3000  (user1 / password123)
+Keycloak:   http://localhost:8080  (console: admin / admin)
+Airflow UI: http://localhost:8081  (admin / admin)
+ClickHouse: http://localhost:8123  (reports / reports_password)
+```
+
+## Перезапуск
+
+```bash
+docker compose up -d
+docker compose -f reports/docker-compose.yaml up -d
+```

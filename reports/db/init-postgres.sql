@@ -1,0 +1,2 @@
+CREATE DATABASE bionicpro;
+GRANT ALL PRIVILEGES ON DATABASE bionicpro TO airflow;
