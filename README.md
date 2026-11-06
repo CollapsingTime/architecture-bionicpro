@@ -65,3 +65,16 @@ ClickHouse: http://localhost:8123  (reports / reports_password)
 docker compose up -d
 docker compose -f reports/docker-compose.yaml up -d
 ```
+
+
+# Задание 2 задача 3
+
+Бэкенд API отчётов: `reports/api/` (Python + FastAPI), сервис `reports-api` в стеке `reports/`
+
+## Проверка
+
+```bash
+curl -s http://localhost:8001/health
+
+curl -s http://localhost:8001/reports/00000000-0000-0000-0000-000000000001
+```

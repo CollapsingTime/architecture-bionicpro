@@ -139,5 +139,22 @@ services:
     networks:
       - reports
 
+  reports-api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: '8123'
+      CLICKHOUSE_DATABASE: reports
+      CLICKHOUSE_USER: reports
+      CLICKHOUSE_PASSWORD: reports_password
+    depends_on:
+      - clickhouse
+    networks:
+      - reports
+
 networks:
   reports:
