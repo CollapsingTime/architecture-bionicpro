@@ -78,3 +78,9 @@ curl -s http://localhost:8001/health
 
 curl -s http://localhost:8001/reports/00000000-0000-0000-0000-000000000001
 ```
+
+
+# Задание 2 задача 4
+
+Доступ к отчетам ограничен: `GET /reports/{user_id}` отдает отчет только по
+`user_id`, совпадающему с `sub` из JWT realm `reports-realm`

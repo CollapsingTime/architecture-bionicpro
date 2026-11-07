@@ -19,6 +19,7 @@
     },
     "users": [
       {
+        "id": "00000000-0000-0000-0000-000000000001",
         "username": "user1",
         "enabled": true,
         "email": "user1@example.com",
@@ -34,6 +35,7 @@
         "realmRoles": ["user"]
       },
       {
+        "id": "00000000-0000-0000-0000-000000000002",
         "username": "user2",
         "enabled": true,
         "email": "user2@example.com",

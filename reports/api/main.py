@@ -5,8 +5,11 @@ from datetime import date
 from typing import Any
 
 import clickhouse_connect
-from fastapi import FastAPI, HTTPException, Query, status
+import jwt
+from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jwt import PyJWKClient
 from pydantic import BaseModel
 
 CLICKHOUSE_HOST = os.getenv("CLICKHOUSE_HOST", "clickhouse")
@@ -19,8 +22,19 @@ ALLOWED_ORIGINS = [
     for origin in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
     if origin.strip()
 ]
+KEYCLOAK_ISSUER = os.getenv(
+    "KEYCLOAK_ISSUER",
+    "http://localhost:8080/realms/reports-realm",
+)
+KEYCLOAK_JWKS_URL = os.getenv(
+    "KEYCLOAK_JWKS_URL",
+    "http://host.docker.internal:8080/realms/reports-realm/protocol/openid-connect/certs",
+)
 
 PIPELINE_NAME = "reports_etl"
+
+security = HTTPBearer(auto_error=False)
+jwks_client = PyJWKClient(KEYCLOAK_JWKS_URL)
 
 
 class ReportItem(BaseModel):
@@ -74,16 +88,22 @@ def clickhouse_client():
 
 
 def get_processed_until(client) -> date:
-    result = client.query(
-        """
-        SELECT processed_until
-        FROM etl_processing_state
-        WHERE pipeline_name = {pipeline:String}
-        ORDER BY updated_at DESC
-        LIMIT 1
-        """,
-        parameters={"pipeline": PIPELINE_NAME},
-    ).result_rows
+    try:
+        result = client.query(
+            """
+            SELECT processed_until
+            FROM etl_processing_state
+            WHERE pipeline_name = {pipeline:String}
+            ORDER BY updated_at DESC
+            LIMIT 1
+            """,
+            parameters={"pipeline": PIPELINE_NAME},
+        ).result_rows
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Report data is not ready yet",
+        ) from exc
     if not result:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -98,12 +118,49 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+def current_user_sub(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+) -> str:
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Bearer token required",
+        )
+    try:
+        signing_key = jwks_client.get_signing_key_from_jwt(credentials.credentials)
+        claims = jwt.decode(
+            credentials.credentials,
+            signing_key.key,
+            algorithms=["RS256"],
+            issuer=KEYCLOAK_ISSUER,
+            options={"verify_aud": False},
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid access token",
+        ) from exc
+    if not claims.get("sub"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has no subject",
+        )
+    return str(claims["sub"])
+
+
 @app.get("/reports/{user_id}", response_model=ReportResponse)
 def get_report(
     user_id: str,
+    token_sub: str = Depends(current_user_sub),
     from_: date | None = Query(default=None, alias="from"),
     to: date | None = None,
 ) -> ReportResponse:
+    if token_sub != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Reports are available only for the authenticated user",
+        )
+
     if from_ and to and from_ > to:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

@@ -78,7 +78,7 @@ services:
         condition: service_healthy
     command: scheduler
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:8080/health || exit 1" ]
+      test: [ "CMD-SHELL", "airflow jobs check --job-type SchedulerJob --hostname \"$${HOSTNAME}\"" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -151,6 +151,10 @@ services:
       CLICKHOUSE_DATABASE: reports
       CLICKHOUSE_USER: reports
       CLICKHOUSE_PASSWORD: reports_password
+      KEYCLOAK_ISSUER: http://localhost:8080/realms/reports-realm
+      KEYCLOAK_JWKS_URL: http://host.docker.internal:8080/realms/reports-realm/protocol/openid-connect/certs
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - clickhouse
     networks:
