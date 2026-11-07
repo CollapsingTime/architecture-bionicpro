@@ -84,3 +84,20 @@ curl -s http://localhost:8001/reports/00000000-0000-0000-0000-000000000001
 
 Доступ к отчетам ограничен: `GET /reports/{user_id}` отдает отчет только по
 `user_id`, совпадающему с `sub` из JWT realm `reports-realm`
+
+# Задание 2 задача 5
+
+В UI добавлена кнопка получения отчета: она вызывает `GET /reports/{sub}`
+
+## Проверка
+
+1. Запустить оба стека, выполнить DAG, чтобы заполнить витрину в ClickHouse
+```bash
+docker compose -f reports/docker-compose.yaml exec -T airflow-scheduler \
+  airflow dags test bionicpro_reports_etl 2025-12-01
+```
+
+2. Открыть http://localhost:3000, войти как `user1` / `password123`
+3. Нажать Получить отчtт - появится профиль клиента и таблица телеметрии
+   за обработанный Airflow период
+4. Нажать Скачать JSON - отчtт сохранится файлом `report-<user_id>.json`
